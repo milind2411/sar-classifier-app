@@ -1,0 +1,72 @@
+{
+  "model_name": "XGBoost GLCM + Radar Statistics Baseline",
+  "n_features": 49,
+  "status": "calibrated_baseline",
+  "overall_metrics": {
+    "accuracy": 1.0,
+    "sample_validation_rate": "6/6 passed",
+    "feature_space": "49 dimensions (GLCM + Moments + Angle)"
+  },
+  "top_features": [
+    {
+      "feature": "hh_glcm_energy_d2",
+      "gain": 37.8735
+    },
+    {
+      "feature": "hh_glcm_energy_d1",
+      "gain": 28.3071
+    },
+    {
+      "feature": "hh_skewness",
+      "gain": 16.5318
+    },
+    {
+      "feature": "hv_kurtosis",
+      "gain": 1.0517
+    },
+    {
+      "feature": "hv_glcm_contrast_d2",
+      "gain": 0.9382
+    },
+    {
+      "feature": "hv_peak_to_mean",
+      "gain": 0.4089
+    },
+    {
+      "feature": "hv_glcm_homogeneity_d1",
+      "gain": 0.3158
+    },
+    {
+      "feature": "hh_glcm_contrast_d1",
+      "gain": 0.0
+    },
+    {
+      "feature": "hh_glcm_homogeneity_d1",
+      "gain": 0.0
+    },
+    {
+      "feature": "hh_glcm_correlation_d1",
+      "gain": 0.0
+    },
+    {
+      "feature": "hh_glcm_contrast_d2",
+      "gain": 0.0
+    },
+    {
+      "feature": "hh_glcm_homogeneity_d2",
+      "gain": 0.0
+    },
+    {
+      "feature": "hh_glcm_correlation_d2",
+      "gain": 0.0
+    },
+    {
+      "feature": "hh_mean",
+      "gain": 0.0
+    },
+    {
+      "feature": "hh_std",
+      "gain": 0.0
+    }
+  ]
+}
