@@ -41,7 +41,7 @@ function ChipThumbnail({ band1, band2 }) {
   );
 }
 
-export default function BatchPage() {
+export default function BatchPage({ onInspectChip }) {
   const navigate = useNavigate();
   const { loadChip, containerVariants, itemVariants } = useChip();
 
@@ -140,10 +140,14 @@ export default function BatchPage() {
       const selectedChip = chips[index];
       if (selectedChip) {
         loadChip(selectedChip);
-        navigate('/app');
+        if (onInspectChip) {
+          onInspectChip(selectedChip);
+        } else {
+          navigate('/app');
+        }
       }
     },
-    [chips, loadChip, navigate],
+    [chips, loadChip, navigate, onInspectChip],
   );
 
   // ── Export Batch as CSV ──

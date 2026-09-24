@@ -85,7 +85,7 @@ const TARGET_CONTACTS = [
   },
 ];
 
-export default function MapPage() {
+export default function MapPage({ onInspectTarget }) {
   const navigate = useNavigate();
   const { loadSample, containerVariants, itemVariants } = useChip();
 
@@ -112,7 +112,11 @@ export default function MapPage() {
 
   const handleSelectAndLoad = (contact) => {
     loadSample(contact.id);
-    navigate('/app');
+    if (onInspectTarget) {
+      onInspectTarget(contact);
+    } else {
+      navigate('/app');
+    }
   };
 
   return (

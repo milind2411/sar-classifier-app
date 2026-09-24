@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import ModelComparisonPanel from '../components/ModelComparisonPanel';
 import { useChip } from '../context/ChipContext';
 
-export default function ComparePage() {
+export default function ComparePage({ onSelectTarget }) {
   const { chip, compareResult, setCompareResult, handleRunComparison, loading } = useChip();
 
   return (
@@ -24,7 +24,7 @@ export default function ComparePage() {
           <button
             onClick={handleRunComparison}
             disabled={loading}
-            className="btn-primary text-xs"
+            className="btn-primary text-xs cursor-pointer"
           >
             {loading ? 'Evaluating Models…' : 'Run Dual-Model Comparison'}
           </button>
@@ -44,12 +44,25 @@ export default function ComparePage() {
               Please select a target preset or drop a SAR chip file in the Analysis Workspace to benchmark ResNet50 against the GLCM XGBoost baseline.
             </p>
           </div>
-          <Link to="/app" className="btn-primary text-xs inline-flex items-center gap-2">
-            <span>Select Target in Analysis</span>
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-            </svg>
-          </Link>
+          {onSelectTarget ? (
+            <button
+              type="button"
+              onClick={onSelectTarget}
+              className="btn-primary text-xs inline-flex items-center gap-2 cursor-pointer"
+            >
+              <span>Select Target in Analysis</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </button>
+          ) : (
+            <Link to="/app" className="btn-primary text-xs inline-flex items-center gap-2">
+              <span>Select Target in Analysis</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </Link>
+          )}
         </div>
       ) : !compareResult ? (
         <div className="glass-panel p-8 text-center space-y-4">
