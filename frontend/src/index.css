@@ -36,15 +36,14 @@
 }
 
 @layer components {
-  /* High-contrast, optical glassmorphism */
+  /* High-contrast, optical glassmorphism with optimized GPU blur */
   .glass-panel {
-    background: rgba(15, 23, 42, 0.68);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36),
-                inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
-                0 0 24px rgba(56, 189, 248, 0.05);
+    background: rgba(15, 23, 42, 0.72);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
     border-radius: 1rem;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
@@ -103,166 +102,6 @@
     background-image: radial-gradient(circle at 50% 50%, transparent 0%, transparent 60%, rgba(56, 189, 248, 0.03) 61%, transparent 62%),
                       radial-gradient(circle at 50% 50%, transparent 0%, transparent 40%, rgba(56, 189, 248, 0.03) 41%, transparent 42%),
                       radial-gradient(circle at 50% 50%, transparent 0%, transparent 20%, rgba(56, 189, 248, 0.03) 21%, transparent 22%);
-  }
-
-  /* ── Liquid-Merging Background (SVG Goo Filter) ── */
-  .liquid-goo-container {
-    filter: url(#liquid-goo);
-    -webkit-filter: url(#liquid-goo);
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    pointer-events: none;
-    contain: strict;
-  }
-
-  .liquid-blob {
-    position: absolute;
-    border-radius: 50%;
-    will-change: transform;
-  }
-
-  /* 5 Large Dark Liquid Blobs with Faint Cyan/Amber Rim Glow */
-  .liquid-blob-1 {
-    width: 580px;
-    height: 580px;
-    top: -120px;
-    left: -100px;
-    background: #000000;
-    border: 1px solid rgba(14, 165, 233, 0.22);
-    box-shadow: 0 0 32px rgba(14, 165, 233, 0.16), inset 0 0 30px rgba(14, 165, 233, 0.04);
-    animation: liquid-drift-1 28s ease-in-out infinite alternate;
-  }
-
-  .liquid-blob-2 {
-    width: 500px;
-    height: 500px;
-    top: 15%;
-    right: -120px;
-    background: #05080e;
-    border: 1px solid rgba(245, 158, 11, 0.18);
-    box-shadow: 0 0 32px rgba(245, 158, 11, 0.12), inset 0 0 30px rgba(245, 158, 11, 0.03);
-    animation: liquid-drift-2 36s ease-in-out infinite alternate;
-  }
-
-  .liquid-blob-3 {
-    width: 640px;
-    height: 640px;
-    bottom: -160px;
-    left: 22%;
-    background: #090d14;
-    border: 1px solid rgba(14, 165, 233, 0.20);
-    box-shadow: 0 0 36px rgba(14, 165, 233, 0.14), inset 0 0 36px rgba(14, 165, 233, 0.04);
-    animation: liquid-drift-3 40s ease-in-out infinite alternate;
-  }
-
-  .liquid-blob-4 {
-    width: 440px;
-    height: 440px;
-    bottom: 8%;
-    right: 8%;
-    background: #020408;
-    border: 1px solid rgba(245, 158, 11, 0.16);
-    box-shadow: 0 0 28px rgba(245, 158, 11, 0.10), inset 0 0 28px rgba(245, 158, 11, 0.02);
-    animation: liquid-drift-4 24s ease-in-out infinite alternate;
-  }
-
-  .liquid-blob-5 {
-    width: 520px;
-    height: 520px;
-    top: 40%;
-    left: 10%;
-    background: #070a10;
-    border: 1px solid rgba(56, 189, 248, 0.18);
-    box-shadow: 0 0 32px rgba(56, 189, 248, 0.12), inset 0 0 32px rgba(56, 189, 248, 0.03);
-    animation: liquid-drift-5 32s ease-in-out infinite alternate;
-  }
-}
-
-/* ── Long, Slow Organic Drift Keyframes (20-40s cycles) ── */
-@keyframes liquid-drift-1 {
-  0% {
-    transform: translate(0, 0) scale(1);
-    border-radius: 46% 54% 50% 50% / 52% 48% 52% 48%;
-  }
-  50% {
-    transform: translate(80px, 60px) scale(1.08);
-    border-radius: 54% 46% 58% 42% / 44% 56% 44% 56%;
-  }
-  100% {
-    transform: translate(30px, -40px) scale(0.96);
-    border-radius: 48% 52% 44% 56% / 56% 44% 52% 48%;
-  }
-}
-
-@keyframes liquid-drift-2 {
-  0% {
-    transform: translate(0, 0) scale(1);
-    border-radius: 52% 48% 46% 54% / 48% 52% 48% 52%;
-  }
-  50% {
-    transform: translate(-90px, 70px) scale(1.06);
-    border-radius: 44% 56% 54% 46% / 56% 44% 56% 44%;
-  }
-  100% {
-    transform: translate(-40px, -50px) scale(0.98);
-    border-radius: 56% 44% 50% 50% / 46% 54% 50% 50%;
-  }
-}
-
-@keyframes liquid-drift-3 {
-  0% {
-    transform: translate(0, 0) scale(1);
-    border-radius: 50% 50% 48% 52% / 52% 48% 52% 48%;
-  }
-  50% {
-    transform: translate(-60px, -80px) scale(1.05);
-    border-radius: 58% 42% 54% 46% / 46% 54% 48% 52%;
-  }
-  100% {
-    transform: translate(70px, -30px) scale(0.95);
-    border-radius: 46% 54% 44% 56% / 54% 46% 54% 46%;
-  }
-}
-
-@keyframes liquid-drift-4 {
-  0% {
-    transform: translate(0, 0) scale(1);
-    border-radius: 48% 52% 54% 46% / 50% 50% 50% 50%;
-  }
-  50% {
-    transform: translate(-70px, -50px) scale(1.09);
-    border-radius: 56% 44% 46% 54% / 44% 56% 56% 44%;
-  }
-  100% {
-    transform: translate(-20px, 40px) scale(0.97);
-    border-radius: 50% 50% 56% 44% / 52% 48% 46% 54%;
-  }
-}
-
-@keyframes liquid-drift-5 {
-  0% {
-    transform: translate(0, 0) scale(1);
-    border-radius: 54% 46% 50% 50% / 48% 52% 52% 48%;
-  }
-  50% {
-    transform: translate(90px, -60px) scale(1.07);
-    border-radius: 46% 54% 56% 44% / 54% 46% 44% 56%;
-  }
-  100% {
-    transform: translate(40px, 50px) scale(0.96);
-    border-radius: 52% 48% 46% 54% / 46% 54% 54% 46%;
-  }
-}
-
-/* Accessibility: respect user prefers-reduced-motion by freezing in merged arrangement */
-@media (prefers-reduced-motion: reduce) {
-  .liquid-blob-1,
-  .liquid-blob-2,
-  .liquid-blob-3,
-  .liquid-blob-4,
-  .liquid-blob-5 {
-    animation: none !important;
   }
 }
 
