@@ -13,12 +13,17 @@ This project has an unusual fourth layer most web apps don't: an **offline
 training stage** that lives entirely outside the running application.
 
 ```
-Kaggle (offline, external)  →  Model Artifacts  →  Backend Services  →  API  →  Frontend
-   training notebook            .onnx / .keras       inference.py       FastAPI    React
-   (not part of runtime)        .json (xgboost)       gradcam.py         routers/   Vite+Tailwind
-                                                       xgboost_service.py
-                                                       radar_telemetry.py
-                                                       history.py (→ SQLite)
+Kaggle (offline, external)  →  Model Artifacts       →  Backend Services  →  API      →  Frontend (React SPA)
+   training notebook            sar_classifier.onnx     inference.py       FastAPI    ├── / (Landing Page)
+   (not part of runtime)        .keras (gradcam)        gradcam.py         routers/   ├── /app (Analysis Workspace)
+                                .json (xgboost)         xgboost_service.py              │   ├── ?tab=target
+                                                        radar_telemetry.py              │   ├── ?tab=compare
+                                                        history.py (→ SQLite)           │   ├── ?tab=sweep
+                                                                                        │   ├── ?tab=map
+                                                                                        │   ├── ?tab=batch
+                                                                                        │   └── ?tab=analytics
+                                                                                      ├── /about (Technical Specs)
+                                                                                      └── (Legacy redirects: /map etc.)
 ```
 
 **Kaggle is not a live pipeline.** There is no automated retraining, no
@@ -29,6 +34,10 @@ system works — flag it rather than build toward it silently.
 
 The frontend never talks to a database or a model file directly. Everything
 goes: **Client → API (routers/predict.py) → Services → Model artifacts or SQLite.**
+The operational frontend consolidates all interactive tooling into `/app`
+as tabbed modules (`?tab=...`), preserving a clean top-level information architecture
+(`/`, `/app`, `/about`) without fragmented routing. Legacy routes (`/compare`,
+`/angle`, `/map`, `/batch`, `/analytics`) redirect to their corresponding `/app?tab=...` views.
 
 ---
 

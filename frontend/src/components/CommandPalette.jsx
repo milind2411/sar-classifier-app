@@ -55,7 +55,7 @@ export default function CommandPalette({ isOpen, onClose, onOpenHistory }) {
         shortcut: 'G M',
         keywords: 'map coverage geospatial acquisition arctic ocean sentinel orbit track swath contacts coordinates',
         action: () => {
-          navigate('/map');
+          navigate('/app?tab=map');
           onClose();
         },
       },
@@ -67,7 +67,7 @@ export default function CommandPalette({ isOpen, onClose, onOpenHistory }) {
         shortcut: 'G Y',
         keywords: 'analytics charts stats pie bar telemetry snr kpi trends audit distribution',
         action: () => {
-          navigate('/analytics');
+          navigate('/app?tab=analytics');
           onClose();
         },
       },
@@ -79,7 +79,7 @@ export default function CommandPalette({ isOpen, onClose, onOpenHistory }) {
         shortcut: 'G C',
         keywords: 'compare model xgboost benchmark glcm texture',
         action: () => {
-          navigate('/compare');
+          navigate('/app?tab=compare');
           onClose();
         },
       },
@@ -91,7 +91,7 @@ export default function CommandPalette({ isOpen, onClose, onOpenHistory }) {
         shortcut: 'G S',
         keywords: 'angle sweep sensitivity orbital curve geometry',
         action: () => {
-          navigate('/angle');
+          navigate('/app?tab=sweep');
           onClose();
         },
       },
@@ -103,7 +103,7 @@ export default function CommandPalette({ isOpen, onClose, onOpenHistory }) {
         shortcut: 'G B',
         keywords: 'batch upload multi chips high throughput bulk',
         action: () => {
-          navigate('/batch');
+          navigate('/app?tab=batch');
           onClose();
         },
       },

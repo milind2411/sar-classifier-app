@@ -225,6 +225,13 @@ Verified end-to-end with 4 dedicated unit tests in `tests/test_predict.py`, brin
     * **Optimized Blur & Shadow Pipeline**: Tuned `.glass-panel` backdrop-filter from 16px to 12px and trimmed redundant box-shadow layers in `index.css`.
     * **Vite Vendor Chunking**: Configured `rollupOptions.output.manualChunks` in `vite.config.js` isolating `recharts` and `framer-motion` into separate vendor bundles, slashing initial bundle size by 71% (from 1,020 kB down to 294 kB) and cutting build time from 33.38s to 13.76s. Verified 71/71 passing backend tests.
 
+12. **Verification Findings & Complete Removal of Liquid Background**:
+    * **Preprocessing Verification**: Inspected `backend/preprocessing/sar_preprocessing.py:lee_filter`. Confirmed exact match with Section 3: window size is 5×5 (`size=5`), unclipped local variance (`var = sq_mean - mean**2`), and global noise variance (`overall_var = np.var(img)`). No silent edits or regressions detected.
+    * **Model Checkpoint & References**: Confirmed `backend/models/sar_classifier.onnx` is the single canonical ONNX model artifact. Verified all references across `backend/inference.py`, `backend/tests/test_predict.py`, `backend/README.md`, and `backend/Dockerfile` consistently reference `sar_classifier.onnx`. Zero orphaned references exist.
+    * **Route Consolidation**: Confirmed `/compare`, `/angle`, `/map`, `/batch`, `/analytics` are consolidated into the Analysis Workspace (`/app?tab=...`) via client-side redirects in `App.jsx`. `CommandPalette.jsx` was updated to navigate directly to `/app?tab=...` targets.
+    * **Liquid Background Removal**: Completely eliminated `LiquidBackground.jsx` and all liquid/goo blob concepts per explicit user decision. Replaced with a clean, static near-black canvas (`#020408`) overlaid with an unobtrusive, subtle technical grid (`radar-grid-texture` at `opacity-20`). Removed `radar-range-rings` to prevent circular visual distraction.
+    * **Verification & Visual Capture**: Production build verified with 0 errors (`npm run build`, 14.79s). Captured full-page desktop screenshots `landing_page.png` and `app_page.png`.
+
 ## 6. The "10/10" feature roadmap — status of each
 
 From the original project brief, tracked here so nothing gets forgotten

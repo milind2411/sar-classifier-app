@@ -3,7 +3,6 @@ import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useChip } from '../context/ChipContext';
 import HistoryDrawer from './HistoryDrawer';
 import CommandPalette from './CommandPalette';
-import LiquidBackground from './LiquidBackground';
 
 export default function Layout() {
   const { backendOnline, error } = useChip();
@@ -32,8 +31,10 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col relative bg-[#020408] text-white selection:bg-accent/30 selection:text-white print:bg-white print:text-black">
-      {/* ── Fluid Liquid-Merging Black Background (SVG Goo Filter) ── */}
-      <LiquidBackground />
+      {/* ── Clean Static Workstation Background (Subtle Technical Grid Texture) ── */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute inset-0 radar-grid-texture opacity-20" />
+      </div>
 
       {/* ── Header ── */}
       <header className="relative z-10 border-b border-white/5 bg-slate-950/50 backdrop-blur-md print:hidden">

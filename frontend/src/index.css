@@ -97,12 +97,6 @@
       linear-gradient(to bottom, rgba(56, 189, 248, 0.035) 1px, transparent 1px);
     background-size: 48px 48px;
   }
-
-  .radar-range-rings {
-    background-image: radial-gradient(circle at 50% 50%, transparent 0%, transparent 60%, rgba(56, 189, 248, 0.03) 61%, transparent 62%),
-                      radial-gradient(circle at 50% 50%, transparent 0%, transparent 40%, rgba(56, 189, 248, 0.03) 41%, transparent 42%),
-                      radial-gradient(circle at 50% 50%, transparent 0%, transparent 20%, rgba(56, 189, 248, 0.03) 21%, transparent 22%);
-  }
 }
 
 /* Print styles for Target Classification Report */
