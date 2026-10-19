@@ -327,6 +327,11 @@ Verified end-to-end with 4 dedicated unit tests in `tests/test_predict.py`, brin
     * **Architectural Layering Note**: `classify()` and `DECISION_THRESHOLD = 0.5` currently reside in `backend/inference.py` and are imported by `backend/xgb_inference.py`. While functional, moving them to a neutral shared module (e.g., `backend/decision.py`) would establish cleaner architectural layering.
     * **CI Workflow Action Versions**: `.github/workflows/ci.yml` uses pinned releases `actions/checkout@v4`, `actions/setup-python@v5`, and `actions/setup-node@v4`. Newer patch/minor releases exist upstream, but these versions are proven stable, functional, and were intentionally left in place.
 
+22. **GitHub Deployment & CI Verification**:
+    * **Repository & Remote**: Remote `origin` configured to `https://github.com/milind2411/sar-classifier-app.git`. Master branch pushed cleanly (commit `d235ec3` verified matching `origin/master`). GitHub emitted standard advisory warning for `backend/models/sar_classifier.onnx` (90.18 MB > 50 MB recommendation, within 100 MB limit).
+    * **CI Result (Observed)**: GitHub Actions CI workflow completed with 100% success (Run #39250161866). Both jobs passed: `Backend Tests (Python 3.11)` (success) and `Frontend Build (Node LTS)` (success).
+    * **Model Isolation**: `backend/models/best_resnet_fusion.keras` remains strictly local-only by design and excluded from git.
+
 ## 6. The "10/10" feature roadmap — status of each
 
 From the original project brief, tracked here so nothing gets forgotten
