@@ -15,7 +15,7 @@ training stage** that lives entirely outside the running application.
 ```
 Kaggle (offline, external)  →  Model Artifacts       →  Backend Services  →  API      →  Frontend (React SPA)
    training notebook            sar_classifier.onnx     inference.py       FastAPI    ├── / (Landing Page)
-   (not part of runtime)        .keras (gradcam)        gradcam.py         routers/   ├── /app (Analysis Workspace — Continuous Flow)
+   (not part of runtime)        .keras (local-only)     gradcam.py         routers/   ├── /app (Analysis Workspace — Continuous Flow)
                                 .json (xgboost)         xgboost_service.py              ├── Section 1: Canvas & Classification Result
                                                         radar_telemetry.py              ├── Section 2: Model Comparison (Inline)
                                                         history.py (→ SQLite)           ├── Section 3: Angle Sensitivity Sweep (Inline)
@@ -23,6 +23,7 @@ Kaggle (offline, external)  →  Model Artifacts       →  Backend Services  �
                                                                                       ├── /batch (Batch Processing Workstation)
                                                                                       ├── /analytics (Audit KPIs & Telemetry Analytics)
                                                                                       ├── /about (Technical Specifications & Provenance)
+                                                                                      ├── /privacy (Privacy Architecture & Policy)
                                                                                       └── (Legacy redirects: /compare, /angle → /app)
 ```
 
@@ -97,8 +98,10 @@ The reasoning that isn't visible from reading the code alone:
   `sar_classifier.onnx` from a *different* checkpoint (`model.h5`) than what
   Grad-CAM used, and the two silently disagreed by ~15% on the same input
   until caught. Every model artifact in `backend/models/` must trace back
-  to this one checkpoint. If this is ever unclear, treat it as a blocking
-  question, not an assumption to make.
+  to this one checkpoint. (`best_resnet_fusion.keras` is kept local-only and
+  excluded from git by design; `sar_classifier.onnx` is the canonical model
+  tracked in git and served in production). If this is ever unclear, treat
+  it as a blocking question, not an assumption to make.
 
 - **`.npz`, never `.npy` + `allow_pickle=True`, for any user-facing file
   format.** Pickle deserialization of untrusted input is a real
