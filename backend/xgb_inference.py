@@ -13,6 +13,7 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import xgboost as xgb
 
+from inference import classify
 from logging_config import get_logger
 from preprocessing.feature_extraction import (
     extract_features_dict,
@@ -81,8 +82,7 @@ class XGBoostBaselineClassifier:
 
         latency_ms = (time.perf_counter() - t0) * 1000.0
 
-        predicted_class = "iceberg" if prob >= 0.5 else "ship"
-        confidence = prob if predicted_class == "iceberg" else 1.0 - prob
+        predicted_class, confidence = classify(prob)
 
         return prob, predicted_class, confidence, latency_ms, feats_dict
 

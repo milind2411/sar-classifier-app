@@ -144,3 +144,8 @@ class PredictionHistoryItem(BaseModel):
     model_used: str = Field(..., description="Model identifier (e.g. 'resnet50')")
     source: str = Field(..., description="Source route (e.g. 'predict', 'upload', 'batch')")
 
+
+class HealthResponse(BaseModel):
+    status: str = Field(..., description="System health status ('ok')")
+
+

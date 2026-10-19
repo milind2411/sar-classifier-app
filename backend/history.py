@@ -55,17 +55,29 @@ def init_db(db_path: Optional[Path] = None):
         conn.commit()
 
 
+def is_history_enabled() -> bool:
+    """
+    Check if prediction history collection and retrieval are enabled via environment variable.
+    Defaults to True. If HISTORY_ENABLED is '0', 'false', 'no', or 'off', returns False.
+    """
+    val = os.environ.get("HISTORY_ENABLED", "true").strip().lower()
+    return val not in ("0", "false", "no", "off")
+
+
 def is_logging_enabled() -> bool:
     """
-    Guard: if TESTING environment variable is set and we are pointing
+    Guard: if history is disabled, or if TESTING environment variable is set and we are pointing
     at the production default database, do not log to prevent test noise.
     """
+    if not is_history_enabled():
+        return False
     if os.environ.get("DISABLE_PREDICTION_LOGGING", "").lower() in ("1", "true", "yes"):
         return False
     is_testing = os.environ.get("TESTING", "").lower() in ("1", "true", "yes")
     if is_testing and get_db_path().resolve() == DEFAULT_DB_PATH.resolve():
         return False
     return True
+
 
 
 def log_prediction(

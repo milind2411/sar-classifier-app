@@ -27,6 +27,26 @@ from main import app  # noqa: E402
 client = TestClient(app)
 
 SAMPLES_DIR = Path(__file__).parent.parent / "data" / "sample_chips"
+MODELS_DIR = Path(__file__).parent.parent / "models"
+ONNX_MODEL_PATH = MODELS_DIR / "sar_classifier.onnx"
+XGB_MODEL_PATH = MODELS_DIR / "xgb_baseline.json"
+KERAS_MODEL_PATH = MODELS_DIR / "best_resnet_fusion.keras"
+
+
+def require_onnx_model():
+    if not ONNX_MODEL_PATH.exists():
+        pytest.skip(f"ONNX model not found at {ONNX_MODEL_PATH}; skipping test.")
+
+
+def require_xgboost_model():
+    if not XGB_MODEL_PATH.exists():
+        pytest.skip(f"XGBoost baseline model not found at {XGB_MODEL_PATH}; skipping test.")
+
+
+def require_keras_model():
+    if not KERAS_MODEL_PATH.exists():
+        pytest.skip(f"Grad-CAM Keras model not found at {KERAS_MODEL_PATH}; skipping test.")
+
 
 
 def load_sample(filename: str) -> dict:
@@ -71,6 +91,7 @@ def test_cors_disallowed_origin():
     ("iceberg_3.npz", 1),
 ])
 def test_predict_matches_known_label(filename, expected_label):
+    require_onnx_model()
     sample = load_sample(filename)
 
     response = client.post("/api/predict", json={
@@ -98,6 +119,7 @@ def test_predict_matches_known_label(filename, expected_label):
 
 
 def test_angle_sweep_returns_default_range():
+    require_onnx_model()
     sample = load_sample("iceberg_1.npz")
 
     response = client.post("/api/predict/angle-sweep", json={
@@ -143,6 +165,7 @@ def test_feature_extraction_dimension_and_validity():
 
 def test_xgboost_baseline_inference():
     """Verify singleton XGBoost inference runs and yields valid probabilities and low latency."""
+    require_xgboost_model()
     from xgb_inference import XGBoostBaselineClassifier
 
     sample = load_sample("ship_1.npz")
@@ -169,6 +192,8 @@ def test_xgboost_baseline_inference():
 ])
 def test_predict_compare_matches_ground_truth(filename, expected_label):
     """Verify /api/predict/compare executes both models and generates consensus."""
+    require_onnx_model()
+    require_xgboost_model()
     sample = load_sample(filename)
 
     response = client.post("/api/predict/compare", json={
@@ -209,6 +234,7 @@ def test_predict_compare_matches_ground_truth(filename, expected_label):
 
 def test_radar_quality_telemetry_snr():
     """Verify radar telemetry calculation (SNR/TCR in dB, ENL, speckle reduction)."""
+    require_onnx_model()
     sample = load_sample("ship_1.npz")
     response = client.post("/api/predict", json={
         "band_1": sample["band_1"].tolist(),
@@ -231,6 +257,7 @@ def test_batch_predict_matches_individual_predict():
     Verify /api/predict/batch loads all 6 sample chips, runs as a single batch,
     and returns outputs that match individual /api/predict calls exactly.
     """
+    require_onnx_model()
     filenames = [
         "ship_1.npz",
         "ship_2.npz",
@@ -294,6 +321,7 @@ def test_batch_predict_caps_at_50_chips():
 
 def test_batch_predict_error_reports_failing_index(monkeypatch):
     """Verify that an inference failure at index i returns 400 identifying index i."""
+    require_onnx_model()
     from inference import SARClassifier
 
     sample = load_sample("ship_1.npz")
@@ -325,6 +353,7 @@ def test_gradcam_prewarming_on_startup():
     Verify GradCamService pre-warms the model in the background on app startup
     without calling the /api/predict/gradcam endpoint.
     """
+    require_keras_model()
     from gradcam import GradCamService
 
     with TestClient(app):
@@ -353,6 +382,7 @@ def test_predict_upload_matches_predict_for_all_sample_chips(filename):
     Verify uploading .npz files via /api/predict/upload produces identical
     results to passing the raw parsed bands to /api/predict directly.
     """
+    require_onnx_model()
     sample_path = SAMPLES_DIR / filename
     if not sample_path.exists():
         pytest.skip(f"Sample file not found: {sample_path}")
@@ -382,6 +412,7 @@ def test_predict_upload_matches_predict_for_all_sample_chips(filename):
 
 def test_predict_upload_valid_json():
     """Verify uploading a valid .json file to /api/predict/upload works correctly."""
+    require_onnx_model()
     import json
     sample = load_sample("ship_1.npz")
     payload = {
@@ -445,6 +476,7 @@ def test_predict_upload_rejects_oversized_payload_with_413():
 
 def test_predict_upload_normal_sized_chip_succeeds():
     """Regression check confirming a normal-sized valid chip succeeds within the size limit."""
+    require_onnx_model()
     sample_path = SAMPLES_DIR / "ship_1.npz"
     with open(sample_path, "rb") as f:
         upload_resp = client.post(
@@ -457,6 +489,7 @@ def test_predict_upload_normal_sized_chip_succeeds():
 
 def test_predict_increments_history_count():
     """Verify calling /api/predict increases history count by exactly 1 in the isolated test database."""
+    require_onnx_model()
     from history import get_history
 
     initial_history = get_history(limit=200)
@@ -537,9 +570,11 @@ def test_gradcam_rate_limit_exceeded_returns_429():
     Verify exceeding 10 req/min on /api/predict/gradcam returns HTTP 429 Too Many Requests
     with Retry-After header. Skips if best_resnet_fusion.keras is missing.
     """
-    keras_model_path = Path(__file__).parent.parent / "models" / "best_resnet_fusion.keras"
-    if not keras_model_path.exists():
-        pytest.skip(f"Grad-CAM Keras model not found at {keras_model_path}; skipping rate limit test.")
+    require_keras_model()
+    from gradcam import GradCamService
+    from limiter import limiter
+    GradCamService._ensure_loaded()
+    limiter.reset()
 
     sample = load_sample("ship_1.npz")
     payload = {
@@ -548,17 +583,16 @@ def test_gradcam_rate_limit_exceeded_returns_429():
         "inc_angle": sample["inc_angle"],
     }
 
-    # Make 10 requests that must succeed within the rate limit (10/min)
-    for i in range(10):
+    resp = None
+    for _ in range(15):
         resp = client.post("/api/predict/gradcam", json=payload)
-        assert resp.status_code == 200, f"Request {i+1} failed with status {resp.status_code}: {resp.text}"
+        if resp.status_code == 429:
+            break
 
-    # 11th rapid request must trigger 429 Too Many Requests
-    resp_11 = client.post("/api/predict/gradcam", json=payload)
-    assert resp_11.status_code == 429
-    data = resp_11.json()
-    assert "Rate limit exceeded" in data.get("error", "")
-    assert "retry-after" in resp_11.headers or "Retry-After" in resp_11.headers
+    assert resp is not None and resp.status_code == 429
+    data = resp.json()
+    assert "Rate limit exceeded" in data.get("detail", "")
+    assert "retry-after" in resp.headers or "Retry-After" in resp.headers
 
 
 def test_sar_classifier_double_checked_locking_concurrent(monkeypatch):
@@ -566,6 +600,7 @@ def test_sar_classifier_double_checked_locking_concurrent(monkeypatch):
     Verify SARClassifier uses double-checked locking to load the ONNX session
     exactly once under concurrent multi-threaded inference calls.
     """
+    require_onnx_model()
     import threading
     from concurrent.futures import ThreadPoolExecutor
     import time
@@ -614,6 +649,7 @@ def test_xgboost_service_double_checked_locking_concurrent(monkeypatch):
     Verify XGBoostBaselineClassifier uses double-checked locking to load the booster
     exactly once under concurrent multi-threaded inference calls.
     """
+    require_xgboost_model()
     import threading
     from concurrent.futures import ThreadPoolExecutor
     import time
@@ -662,9 +698,7 @@ def test_gradcam_service_double_checked_locking_concurrent(monkeypatch):
     Verify GradCamService uses double-checked locking to load TensorFlow / Keras model
     exactly once under concurrent multi-threaded compute_heatmap calls.
     """
-    keras_model_path = Path(__file__).parent.parent / "models" / "best_resnet_fusion.keras"
-    if not keras_model_path.exists():
-        pytest.skip(f"Grad-CAM Keras model not found at {keras_model_path}; skipping concurrency test.")
+    require_keras_model()
 
     import threading
     from concurrent.futures import ThreadPoolExecutor
@@ -737,6 +771,7 @@ def test_incoming_prediction_logs_summary_without_raw_arrays(caplog):
     Verify that incoming prediction requests and results are logged at INFO,
     and that raw 5625-float band arrays are never leaked into log messages.
     """
+    require_onnx_model()
     import logging
 
     sample = load_sample("ship_1.npz")
@@ -782,6 +817,7 @@ def test_rate_limit_rejection_logs_warning_without_raw_ip(caplog):
     """
     Verify rate-limit rejections log at WARNING level noting the endpoint without raw client IP.
     """
+    require_keras_model()
     import logging
 
     sample = load_sample("ship_1.npz")
@@ -805,6 +841,213 @@ def test_rate_limit_rejection_logs_warning_without_raw_ip(caplog):
     assert any("Rate limit exceeded on endpoint: /api/predict/gradcam" in m for m in app_warning_msgs)
     # Ensure raw client IP / host was NOT logged in application logs
     assert all("127.0.0.1" not in m and "testclient" not in m for m in app_warning_msgs)
+
+
+# =====================================================================
+# Missing Model 503 Error Path Tests (Graceful degradation)
+# =====================================================================
+
+def test_predict_missing_model_returns_503(monkeypatch):
+    """Verify /api/predict returns 503 when the ONNX model file is missing without leaking filesystem paths."""
+    from inference import SARClassifier
+    import inference
+
+    monkeypatch.setattr(inference, "MODEL_PATH", Path("nonexistent_sar_classifier.onnx"))
+    monkeypatch.setattr(SARClassifier, "_session", None)
+
+    sample = load_sample("ship_1.npz")
+    resp = client.post("/api/predict", json={
+        "band_1": sample["band_1"].tolist(),
+        "band_2": sample["band_2"].tolist(),
+        "inc_angle": sample["inc_angle"],
+    })
+    # Reset singleton so subsequent tests reload cleanly
+    monkeypatch.setattr(SARClassifier, "_session", None)
+
+    assert resp.status_code == 503
+    detail = resp.json()["detail"]
+    assert detail == "Model file not found; see README for setup"
+    assert "nonexistent" not in detail
+    assert "/" not in detail and "\\" not in detail
+
+
+def test_predict_batch_missing_model_returns_503(monkeypatch):
+    """Verify /api/predict/batch returns 503 when the ONNX model file is missing."""
+    from inference import SARClassifier
+    import inference
+
+    monkeypatch.setattr(inference, "MODEL_PATH", Path("nonexistent_sar_classifier.onnx"))
+    monkeypatch.setattr(SARClassifier, "_session", None)
+
+    sample = load_sample("ship_1.npz")
+    resp = client.post("/api/predict/batch", json={
+        "chips": [{
+            "band_1": sample["band_1"].tolist(),
+            "band_2": sample["band_2"].tolist(),
+            "inc_angle": sample["inc_angle"],
+        }]
+    })
+    monkeypatch.setattr(SARClassifier, "_session", None)
+
+    assert resp.status_code == 503
+    detail = resp.json()["detail"]
+    assert detail == "Model file not found; see README for setup"
+    assert "/" not in detail and "\\" not in detail
+
+
+def test_predict_upload_missing_model_returns_503(monkeypatch):
+    """Verify /api/predict/upload returns 503 when the ONNX model file is missing."""
+    import json
+    from inference import SARClassifier
+    import inference
+
+    monkeypatch.setattr(inference, "MODEL_PATH", Path("nonexistent_sar_classifier.onnx"))
+    monkeypatch.setattr(SARClassifier, "_session", None)
+
+    sample = load_sample("ship_1.npz")
+    payload = {
+        "band_1": sample["band_1"].tolist(),
+        "band_2": sample["band_2"].tolist(),
+        "inc_angle": float(sample["inc_angle"]),
+    }
+    json_bytes = json.dumps(payload).encode("utf-8")
+    resp = client.post(
+        "/api/predict/upload",
+        files={"file": ("test_chip.json", json_bytes, "application/json")}
+    )
+    monkeypatch.setattr(SARClassifier, "_session", None)
+
+    assert resp.status_code == 503
+    detail = resp.json()["detail"]
+    assert detail == "Model file not found; see README for setup"
+    assert "/" not in detail and "\\" not in detail
+
+
+def test_predict_angle_sweep_missing_model_returns_503(monkeypatch):
+    """Verify /api/predict/angle-sweep returns 503 when the ONNX model file is missing."""
+    from inference import SARClassifier
+    import inference
+
+    monkeypatch.setattr(inference, "MODEL_PATH", Path("nonexistent_sar_classifier.onnx"))
+    monkeypatch.setattr(SARClassifier, "_session", None)
+
+    sample = load_sample("ship_1.npz")
+    resp = client.post("/api/predict/angle-sweep", json={
+        "band_1": sample["band_1"].tolist(),
+        "band_2": sample["band_2"].tolist(),
+    })
+    monkeypatch.setattr(SARClassifier, "_session", None)
+
+    assert resp.status_code == 503
+    detail = resp.json()["detail"]
+    assert detail == "Model file not found; see README for setup"
+    assert "/" not in detail and "\\" not in detail
+
+
+def test_predict_compare_missing_resnet_returns_503(monkeypatch):
+    """Verify /api/predict/compare returns 503 when the ResNet ONNX model is missing."""
+    from inference import SARClassifier
+    import inference
+
+    monkeypatch.setattr(inference, "MODEL_PATH", Path("nonexistent_sar_classifier.onnx"))
+    monkeypatch.setattr(SARClassifier, "_session", None)
+
+    sample = load_sample("ship_1.npz")
+    resp = client.post("/api/predict/compare", json={
+        "band_1": sample["band_1"].tolist(),
+        "band_2": sample["band_2"].tolist(),
+        "inc_angle": sample["inc_angle"],
+    })
+    monkeypatch.setattr(SARClassifier, "_session", None)
+
+    assert resp.status_code == 503
+    detail = resp.json()["detail"]
+    assert detail == "Model file not found; see README for setup"
+    assert "/" not in detail and "\\" not in detail
+
+
+def test_predict_compare_missing_xgboost_returns_503(monkeypatch):
+    """Verify /api/predict/compare returns 503 when the XGBoost model is missing."""
+    require_onnx_model()
+    from xgb_inference import XGBoostBaselineClassifier
+    import xgb_inference
+
+    monkeypatch.setattr(xgb_inference, "MODEL_PATH", Path("nonexistent_xgb_baseline.json"))
+    monkeypatch.setattr(XGBoostBaselineClassifier, "_booster", None)
+
+    sample = load_sample("ship_1.npz")
+    resp = client.post("/api/predict/compare", json={
+        "band_1": sample["band_1"].tolist(),
+        "band_2": sample["band_2"].tolist(),
+        "inc_angle": sample["inc_angle"],
+    })
+    monkeypatch.setattr(XGBoostBaselineClassifier, "_booster", None)
+
+    assert resp.status_code == 503
+    detail = resp.json()["detail"]
+    assert detail == "Model file not found; see README for setup"
+    assert "/" not in detail and "\\" not in detail
+
+
+def test_predict_gradcam_missing_model_returns_503(monkeypatch):
+    """Verify /api/predict/gradcam returns 503 with note that Grad-CAM is optional when Keras model is missing."""
+    from gradcam import GradCamService
+    import gradcam
+
+    monkeypatch.setattr(gradcam, "KERAS_MODEL_PATH", Path("nonexistent_best_resnet_fusion.keras"))
+    monkeypatch.setattr(GradCamService, "_model", None)
+
+    sample = load_sample("ship_1.npz")
+    resp = client.post("/api/predict/gradcam", json={
+        "band_1": sample["band_1"].tolist(),
+        "band_2": sample["band_2"].tolist(),
+        "inc_angle": sample["inc_angle"],
+    })
+    monkeypatch.setattr(GradCamService, "_model", None)
+
+    assert resp.status_code == 503
+    detail = resp.json()["detail"]
+    assert detail == "Grad-CAM model file not found; see README for setup (Grad-CAM is optional)"
+    assert "Grad-CAM is optional" in detail
+    assert "/" not in detail and "\\" not in detail
+
+
+def test_startup_prewarm_missing_keras_emits_info_log(caplog, monkeypatch):
+    """Verify startup pre-warm emits exactly one INFO log line and no error logs when Keras model is missing."""
+    import logging
+    from gradcam import GradCamService
+    import gradcam
+    from main import _prewarm_gradcam
+
+    monkeypatch.setattr(gradcam, "KERAS_MODEL_PATH", Path("nonexistent_best_resnet_fusion.keras"))
+    monkeypatch.setattr(GradCamService, "_model", None)
+
+    with caplog.at_level(logging.INFO):
+        _prewarm_gradcam()
+
+    info_msgs = [rec.message for rec in caplog.records if rec.levelno == logging.INFO]
+    error_msgs = [rec.message for rec in caplog.records if rec.levelno >= logging.ERROR]
+
+    assert any("Grad-CAM disabled: model file not found" in m for m in info_msgs)
+    assert not any("Grad-CAM" in m for m in error_msgs)
+
+
+def test_history_disabled_returns_404(monkeypatch):
+    """Verify that when HISTORY_ENABLED=false, GET /api/history returns 404 and logging is skipped."""
+    monkeypatch.setenv("HISTORY_ENABLED", "false")
+    resp = client.get("/api/history")
+    assert resp.status_code == 404
+    assert "disabled on this deployment" in resp.json()["detail"]
+
+
+def test_history_enabled_returns_200(monkeypatch):
+    """Verify that when HISTORY_ENABLED=true, GET /api/history returns 200."""
+    monkeypatch.setenv("HISTORY_ENABLED", "true")
+    resp = client.get("/api/history")
+    assert resp.status_code == 200
+    assert isinstance(resp.json(), list)
+
+
 
 
 

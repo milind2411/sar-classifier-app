@@ -134,6 +134,10 @@ def test_upload_npz_nan_infinity_rejected():
 
 def test_zero_variance_chip_predict_safe():
     """All-zero flat chips must not cause division-by-zero or crash SQLite."""
+    onnx_path = Path(__file__).parent.parent / "models" / "sar_classifier.onnx"
+    if not onnx_path.exists():
+        pytest.skip(f"ONNX model file not found at {onnx_path}; skipping test.")
+
     flat_band = [0.0] * CHIP_LENGTH
     payload = {
         "band_1": flat_band,
@@ -152,6 +156,11 @@ def test_zero_variance_chip_predict_safe():
 
 def test_zero_variance_chip_compare_safe():
     """All-zero flat chips in dual-model comparison must compute without math errors."""
+    onnx_path = Path(__file__).parent.parent / "models" / "sar_classifier.onnx"
+    xgb_path = Path(__file__).parent.parent / "models" / "xgb_baseline.json"
+    if not onnx_path.exists() or not xgb_path.exists():
+        pytest.skip("ONNX or XGBoost model file not found; skipping compare test.")
+
     flat_band = [0.0] * CHIP_LENGTH
     payload = {
         "band_1": flat_band,

@@ -7,7 +7,7 @@ loading a session on every API call would add unnecessary latency.
 
 import threading
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 import onnxruntime as ort
@@ -24,6 +24,20 @@ DEFAULT_SWEEP_ANGLES = [float(a) for a in range(30, 47, 2)]  # 30,32,...,46
 EPSILON = 1e-7
 
 logger = get_logger("inference")
+
+
+DECISION_THRESHOLD = 0.5
+
+
+def classify(prob: float) -> Tuple[str, float]:
+    """
+    Single source of truth for binary decision thresholding.
+    prob: Calibrated probability that the target is an iceberg [0.0, 1.0].
+    Returns: (predicted_class, confidence) where confidence is always >= 0.5.
+    """
+    predicted_class = "iceberg" if prob >= DECISION_THRESHOLD else "ship"
+    confidence = prob if predicted_class == "iceberg" else 1.0 - prob
+    return predicted_class, confidence
 
 
 class SARClassifier:
@@ -62,8 +76,7 @@ class SARClassifier:
     def predict(cls, band_1: List[float], band_2: List[float], inc_angle: float):
         """Returns (probability_iceberg, predicted_class, confidence)."""
         prob = cls._raw_probability(band_1, band_2, inc_angle)
-        predicted_class = "iceberg" if prob >= 0.5 else "ship"
-        confidence = prob if predicted_class == "iceberg" else 1.0 - prob
+        predicted_class, confidence = classify(prob)
         return prob, predicted_class, confidence
 
     @classmethod

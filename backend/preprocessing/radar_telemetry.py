@@ -13,11 +13,23 @@ import numpy as np
 
 from preprocessing.sar_preprocessing import lee_filter
 
+CONTRAST_THRESHOLD_DB = 6.0
+HIGH_CONTRAST_LABEL = "High Contrast Target"
+LOW_CONTRAST_LABEL = "Low Contrast / High Clutter"
+
+
+def assess_target_contrast(tcr_db: float) -> str:
+    """
+    Single source of truth for radar target contrast assessment.
+    A Target-to-Clutter Ratio (TCR) >= 6.0 dB indicates high target contrast relative to background sea clutter.
+    """
+    return HIGH_CONTRAST_LABEL if tcr_db >= CONTRAST_THRESHOLD_DB else LOW_CONTRAST_LABEL
+
 
 def compute_radar_quality_metrics(
     raw_band_1: List[float],
     raw_band_2: List[float]
-) -> Dict[str, float]:
+) -> Dict[str, any]:
     """
     Compute domain-specific radar physics telemetry for the raw and filtered SAR chip.
     Operates in the linear intensity domain (Power = 10^(dB / 10)).
@@ -70,14 +82,36 @@ def compute_radar_quality_metrics(
     f_b2_db = lee_filter(b2_db)
     cross_pol_ratio = float(np.mean(f_b1_db) - np.mean(f_b2_db))
 
+    tcr_db_rounded = round(tcr_db, 2)
+
     return {
         "enl_raw": round(enl_raw, 2),
         "enl_unfiltered": round(enl_raw, 2),
         "enl_filtered": round(enl_filtered, 2),
         "speckle_reduction_pct": round(speckle_reduction_pct, 1),
-        "target_to_clutter_ratio_db": round(tcr_db, 2),
+        "target_to_clutter_ratio_db": tcr_db_rounded,
+        "target_contrast_assessment": assess_target_contrast(tcr_db_rounded),
         "cross_pol_delta_db": round(cross_pol_ratio, 2),
         "dynamic_range_db": round(float(np.max(b1_db) - np.min(b1_db)), 2),
+    }
+
+
+def extract_radar_quality_telemetry(
+    raw_band_1: List[float],
+    raw_band_2: List[float]
+) -> Dict[str, any]:
+    """
+    Extract all radar quality telemetry metrics including target contrast assessment.
+    Returns a dict matching schemas.RadarQualityTelemetry.
+    """
+    metrics = compute_radar_quality_metrics(raw_band_1, raw_band_2)
+    return {
+        "target_to_clutter_ratio_db": metrics["target_to_clutter_ratio_db"],
+        "target_contrast_assessment": metrics["target_contrast_assessment"],
+        "speckle_reduction_pct": metrics["speckle_reduction_pct"],
+        "enl_filtered": metrics["enl_filtered"],
+        "cross_pol_delta_db": metrics["cross_pol_delta_db"],
+        "dynamic_range_db": metrics["dynamic_range_db"],
     }
 
 
@@ -124,5 +158,5 @@ def generate_maritime_risk_directive(
         "risk_color": risk_color,
         "recommended_standoff_nm": standoff_nm,
         "directive": directive,
-        "target_contrast_assessment": "High Contrast Target" if tcr_db >= 6.0 else "Low Contrast / High Clutter",
+        "target_contrast_assessment": assess_target_contrast(tcr_db),
     }

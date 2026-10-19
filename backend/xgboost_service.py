@@ -4,5 +4,6 @@ References XGBoostBaselineClassifier in xgb_inference.py.
 """
 
 from xgb_inference import XGBoostBaselineClassifier, XGBoostService
+from inference import classify, DECISION_THRESHOLD
 
-__all__ = ["XGBoostBaselineClassifier", "XGBoostService"]
+__all__ = ["XGBoostBaselineClassifier", "XGBoostService", "classify", "DECISION_THRESHOLD"]

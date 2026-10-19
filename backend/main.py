@@ -24,6 +24,7 @@ from logging_config import setup_logging, get_logger
 from routers import predict as predict_router
 from gradcam import GradCamService
 from limiter import limiter
+from schemas import HealthResponse
 
 # Initialize structured logging to stdout
 setup_logging()
@@ -32,12 +33,13 @@ logger = get_logger("main")
 
 def _prewarm_gradcam():
     """Background task to load TensorFlow and Keras model without blocking startup."""
-    logger.info("[Grad-CAM] Background pre-warming started...")
     try:
         GradCamService._ensure_loaded()
         logger.info("[Grad-CAM] Background pre-warming finished.")
+    except FileNotFoundError:
+        logger.info("Grad-CAM disabled: model file not found")
     except Exception as e:
-        logger.error(f"[Grad-CAM] Background pre-warming failed: {e}", exc_info=True)
+        logger.error("[Grad-CAM] Background pre-warming failed: %s", e, exc_info=True)
 
 
 @asynccontextmanager
@@ -58,7 +60,12 @@ app = FastAPI(
 def _custom_rate_limit_handler(request: Request, exc: RateLimitExceeded):
     """Log rate limit rejections as WARNING with endpoint details (anonymized/no raw IP)."""
     logger.warning("Rate limit exceeded on endpoint: %s (limit: %s)", request.url.path, exc.detail)
-    return _rate_limit_exceeded_handler(request, exc)
+    response = _rate_limit_exceeded_handler(request, exc)
+    return JSONResponse(
+        status_code=429,
+        content={"detail": f"Rate limit exceeded: {exc.detail}"},
+        headers=dict(response.headers),
+    )
 
 
 async def _custom_validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -110,6 +117,6 @@ app.add_middleware(
 app.include_router(predict_router.router, prefix="/api", tags=["prediction"])
 
 
-@app.get("/health", tags=["meta"])
+@app.get("/health", response_model=HealthResponse, tags=["meta"])
 def health():
     return {"status": "ok"}

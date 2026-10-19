@@ -17,12 +17,21 @@ from schemas import (
 from inference import SARClassifier, DEFAULT_SWEEP_ANGLES
 from gradcam import GradCamService
 from xgb_inference import XGBoostBaselineClassifier
-from preprocessing.radar_telemetry import compute_radar_quality_metrics
-from history import log_prediction, get_history
+from preprocessing.radar_telemetry import extract_radar_quality_telemetry
+from history import log_prediction, get_history, is_history_enabled
 from limiter import limiter
 from logging_config import get_logger
 
 logger = get_logger("router.predict")
+
+
+def _extract_telemetry_obj(band_1: list, band_2: list) -> RadarQualityTelemetry | None:
+    """Helper to safely build RadarQualityTelemetry without repeating error handling or threshold rules."""
+    try:
+        data = extract_radar_quality_telemetry(band_1, band_2)
+        return RadarQualityTelemetry(**data)
+    except Exception:
+        return None
 
 router = APIRouter()
 
@@ -42,23 +51,12 @@ def predict(chip: ChipInput):
         )
     except FileNotFoundError as e:
         logger.error("Prediction failed - model file missing: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=503, detail="Model file not found; see README for setup")
     except Exception as e:
         logger.warning("Prediction calculation failed: %s", e)
         raise HTTPException(status_code=400, detail=f"Prediction failed: {e}")
 
-    try:
-        telemetry_data = compute_radar_quality_metrics(chip.band_1, chip.band_2)
-        telemetry_obj = RadarQualityTelemetry(
-            target_to_clutter_ratio_db=telemetry_data["target_to_clutter_ratio_db"],
-            target_contrast_assessment="High Contrast Target" if telemetry_data["target_to_clutter_ratio_db"] >= 6.0 else "Low Contrast / High Clutter",
-            speckle_reduction_pct=telemetry_data["speckle_reduction_pct"],
-            enl_filtered=telemetry_data["enl_filtered"],
-            cross_pol_delta_db=telemetry_data["cross_pol_delta_db"],
-            dynamic_range_db=telemetry_data["dynamic_range_db"],
-        )
-    except Exception:
-        telemetry_obj = None
+    telemetry_obj = _extract_telemetry_obj(chip.band_1, chip.band_2)
 
     log_prediction(
         predicted_class=predicted_class,
@@ -96,23 +94,12 @@ def predict_batch(request: Request, response: Response, payload: BatchChipInput)
             )
         except FileNotFoundError as e:
             logger.error("Batch prediction failed at index %d - model missing: %s", idx, e)
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=503, detail="Model file not found; see README for setup")
         except Exception as e:
             logger.warning("Batch prediction failed at index %d: %s", idx, e)
             raise HTTPException(status_code=400, detail=f"Prediction failed at index {idx}: {e}")
 
-        try:
-            telemetry_data = compute_radar_quality_metrics(chip.band_1, chip.band_2)
-            telemetry_obj = RadarQualityTelemetry(
-                target_to_clutter_ratio_db=telemetry_data["target_to_clutter_ratio_db"],
-                target_contrast_assessment="High Contrast Target" if telemetry_data["target_to_clutter_ratio_db"] >= 6.0 else "Low Contrast / High Clutter",
-                speckle_reduction_pct=telemetry_data["speckle_reduction_pct"],
-                enl_filtered=telemetry_data["enl_filtered"],
-                cross_pol_delta_db=telemetry_data["cross_pol_delta_db"],
-                dynamic_range_db=telemetry_data["dynamic_range_db"],
-            )
-        except Exception:
-            telemetry_obj = None
+        telemetry_obj = _extract_telemetry_obj(chip.band_1, chip.band_2)
 
         log_prediction(
             predicted_class=predicted_class,
@@ -145,11 +132,11 @@ async def predict_upload(file: UploadFile = File(...)):
     or malformed payloads with HTTP 400.
     """
     filename = file.filename or ""
-    logger.info("File upload prediction requested (filename='%s')", filename)
     ext = Path(filename).suffix.lower()
+    logger.info("File upload prediction requested (format='%s')", ext)
 
     if ext not in [".json", ".npz"]:
-        logger.warning("Upload rejected: unsupported file extension '%s' for '%s'", ext, filename)
+        logger.warning("Upload rejected: unsupported file extension '%s'", ext)
         raise HTTPException(
             status_code=400,
             detail=f"Unsupported file extension '{ext}'. Supported formats: .json, .npz",
@@ -163,7 +150,7 @@ async def predict_upload(file: UploadFile = File(...)):
         file.file.seek(0)
 
     if file_size > MAX_UPLOAD_SIZE_BYTES:
-        logger.warning("Upload rejected: file '%s' (%d bytes) exceeds 2MB limit", filename, file_size)
+        logger.warning("Upload rejected: payload (%d bytes, format='%s') exceeds 2MB limit", file_size, ext)
         raise HTTPException(
             status_code=413,
             detail=(
@@ -175,25 +162,25 @@ async def predict_upload(file: UploadFile = File(...)):
     try:
         contents = await file.read()
     except Exception as e:
-        logger.warning("Upload rejected: failed to read file '%s': %s", filename, e)
+        logger.warning("Upload rejected: failed to read payload (format='%s'): %s", ext, e)
         raise HTTPException(status_code=400, detail=f"Failed to read uploaded file: {e}")
 
     if ext == ".json":
         try:
             data = json.loads(contents.decode("utf-8"))
         except Exception as e:
-            logger.warning("Upload rejected: malformed JSON in '%s': %s", filename, e)
+            logger.warning("Upload rejected: malformed JSON: %s", e)
             raise HTTPException(status_code=400, detail=f"Malformed JSON file: {e}")
     else:  # .npz
         try:
             with np.load(io.BytesIO(contents)) as npz:
                 data = {k: npz[k] for k in npz.files}
         except Exception as e:
-            logger.warning("Upload rejected: malformed .npz in '%s': %s", filename, e)
+            logger.warning("Upload rejected: malformed .npz: %s", e)
             raise HTTPException(status_code=400, detail=f"Failed to parse .npz file: {e}")
 
     if not isinstance(data, dict):
-        logger.warning("Upload rejected: payload in '%s' is not a dictionary", filename)
+        logger.warning("Upload rejected: payload is not a dictionary (format='%s')", ext)
         raise HTTPException(
             status_code=400,
             detail=f"Invalid file payload: expected a dictionary/object, got {type(data).__name__}",
@@ -201,7 +188,7 @@ async def predict_upload(file: UploadFile = File(...)):
 
     missing_fields = [f for f in ["band_1", "band_2", "inc_angle"] if f not in data]
     if missing_fields:
-        logger.warning("Upload rejected: missing fields %s in '%s'", missing_fields, filename)
+        logger.warning("Upload rejected: missing fields %s (format='%s')", missing_fields, ext)
         raise HTTPException(
             status_code=400,
             detail=f"Missing required field(s): {', '.join(missing_fields)}",
@@ -218,7 +205,7 @@ async def predict_upload(file: UploadFile = File(...)):
 
     if not isinstance(band_1, (list, tuple)) or len(band_1) != 5625:
         length_str = str(len(band_1)) if hasattr(band_1, "__len__") else "non-sequence"
-        logger.warning("Upload rejected: invalid band_1 length (%s) in '%s'", length_str, filename)
+        logger.warning("Upload rejected: invalid band_1 length (%s, format='%s')", length_str, ext)
         raise HTTPException(
             status_code=400,
             detail=f"Invalid length for band_1: expected 5625 floats, got {length_str}",
@@ -226,7 +213,7 @@ async def predict_upload(file: UploadFile = File(...)):
 
     if not isinstance(band_2, (list, tuple)) or len(band_2) != 5625:
         length_str = str(len(band_2)) if hasattr(band_2, "__len__") else "non-sequence"
-        logger.warning("Upload rejected: invalid band_2 length (%s) in '%s'", length_str, filename)
+        logger.warning("Upload rejected: invalid band_2 length (%s, format='%s')", length_str, ext)
         raise HTTPException(
             status_code=400,
             detail=f"Invalid length for band_2: expected 5625 floats, got {length_str}",
@@ -236,14 +223,14 @@ async def predict_upload(file: UploadFile = File(...)):
         band_1 = [float(x) for x in band_1]
         band_2 = [float(x) for x in band_2]
     except (ValueError, TypeError) as e:
-        logger.warning("Upload rejected: non-numerical band data in '%s': %s", filename, e)
+        logger.warning("Upload rejected: non-numerical band data (format='%s'): %s", ext, e)
         raise HTTPException(
             status_code=400,
             detail=f"Band arrays must contain numerical values: {e}",
         )
 
     if any(not math.isfinite(x) for x in band_1) or any(not math.isfinite(x) for x in band_2):
-        logger.warning("Upload rejected: non-finite (NaN/Inf) band data in '%s'", filename)
+        logger.warning("Upload rejected: non-finite (NaN/Inf) band data (format='%s')", ext)
         raise HTTPException(
             status_code=400,
             detail="Band array values must be finite numbers (NaN and Infinity are not permitted)",
@@ -252,14 +239,14 @@ async def predict_upload(file: UploadFile = File(...)):
     try:
         inc_angle = float(inc_angle_val)
     except (ValueError, TypeError) as e:
-        logger.warning("Upload rejected: invalid angle in '%s': %s", filename, e)
+        logger.warning("Upload rejected: invalid angle (format='%s'): %s", ext, e)
         raise HTTPException(
             status_code=400,
             detail=f"Invalid incidence angle: {e}",
         )
 
     if not math.isfinite(inc_angle) or not (0.0 <= inc_angle <= 90.0):
-        logger.warning("Upload rejected: angle %s out of bounds in '%s'", inc_angle_val, filename)
+        logger.warning("Upload rejected: angle %s out of bounds (format='%s')", inc_angle_val, ext)
         raise HTTPException(
             status_code=400,
             detail=f"Incidence angle {inc_angle_val} out of valid range [0, 90] degrees",
@@ -271,23 +258,12 @@ async def predict_upload(file: UploadFile = File(...)):
         )
     except FileNotFoundError as e:
         logger.error("Upload prediction failed - model missing: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=503, detail="Model file not found; see README for setup")
     except Exception as e:
         logger.warning("Upload prediction calculation failed: %s", e)
         raise HTTPException(status_code=400, detail=f"Prediction failed: {e}")
 
-    try:
-        telemetry_data = compute_radar_quality_metrics(band_1, band_2)
-        telemetry_obj = RadarQualityTelemetry(
-            target_to_clutter_ratio_db=telemetry_data["target_to_clutter_ratio_db"],
-            target_contrast_assessment="High Contrast Target" if telemetry_data["target_to_clutter_ratio_db"] >= 6.0 else "Low Contrast / High Clutter",
-            speckle_reduction_pct=telemetry_data["speckle_reduction_pct"],
-            enl_filtered=telemetry_data["enl_filtered"],
-            cross_pol_delta_db=telemetry_data["cross_pol_delta_db"],
-            dynamic_range_db=telemetry_data["dynamic_range_db"],
-        )
-    except Exception:
-        telemetry_obj = None
+    telemetry_obj = _extract_telemetry_obj(band_1, band_2)
 
     log_prediction(
         predicted_class=predicted_class,
@@ -315,10 +291,15 @@ async def predict_upload(file: UploadFile = File(...)):
 def history(limit: int = 50):
     """
     Retrieve recent prediction history (default limit 50, capped at 200).
+    Returns 404 if history collection/retrieval is disabled via HISTORY_ENABLED=false.
     """
+    if not is_history_enabled():
+        raise HTTPException(status_code=404, detail="Prediction history is disabled on this deployment")
+
     capped_limit = min(max(1, limit), 200)
     logger.info("Prediction history requested (limit=%d)", capped_limit)
     return get_history(limit=capped_limit)
+
 
 
 @router.post("/predict/angle-sweep", response_model=AngleSweepOutput)
@@ -334,7 +315,7 @@ def angle_sweep(payload: AngleSweepInput):
         points = SARClassifier.angle_sweep(payload.band_1, payload.band_2, payload.angles)
     except FileNotFoundError as e:
         logger.error("Angle sweep failed - model missing: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=503, detail="Model file not found; see README for setup")
     except Exception as e:
         logger.warning("Angle sweep failed: %s", e)
         raise HTTPException(status_code=400, detail=f"Angle sweep failed: {e}")
@@ -359,7 +340,10 @@ def gradcam(request: Request, response: Response, chip: ChipInput):
         )
     except FileNotFoundError as e:
         logger.error("Grad-CAM failed - Keras model missing: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=503,
+            detail="Grad-CAM model file not found; see README for setup (Grad-CAM is optional)",
+        )
     except Exception as e:
         logger.warning("Grad-CAM computation failed: %s", e)
         raise HTTPException(status_code=400, detail=f"Grad-CAM failed: {e}")
@@ -388,7 +372,7 @@ def compare_models(request: Request, response: Response, chip: ChipInput):
         resnet_latency_ms = (time.perf_counter() - t0_resnet) * 1000.0
     except FileNotFoundError as e:
         logger.error("Model comparison failed - ResNet model missing: %s", e)
-        raise HTTPException(status_code=500, detail=f"ResNet model missing: {e}")
+        raise HTTPException(status_code=503, detail="Model file not found; see README for setup")
     except Exception as e:
         logger.warning("Model comparison failed - ResNet inference error: %s", e)
         raise HTTPException(status_code=400, detail=f"ResNet prediction failed: {e}")
@@ -400,7 +384,7 @@ def compare_models(request: Request, response: Response, chip: ChipInput):
         )
     except FileNotFoundError as e:
         logger.error("Model comparison failed - XGBoost baseline missing: %s", e)
-        raise HTTPException(status_code=500, detail=f"XGBoost baseline missing: {e}")
+        raise HTTPException(status_code=503, detail="Model file not found; see README for setup")
     except Exception as e:
         logger.warning("Model comparison failed - XGBoost inference error: %s", e)
         raise HTTPException(status_code=400, detail=f"XGBoost prediction failed: {e}")
@@ -431,18 +415,7 @@ def compare_models(request: Request, response: Response, chip: ChipInput):
         "inc_angle": round(chip.inc_angle, 2),
     }
 
-    try:
-        telemetry_data = compute_radar_quality_metrics(chip.band_1, chip.band_2)
-        telemetry_obj = RadarQualityTelemetry(
-            target_to_clutter_ratio_db=telemetry_data["target_to_clutter_ratio_db"],
-            target_contrast_assessment="High Contrast Target" if telemetry_data["target_to_clutter_ratio_db"] >= 6.0 else "Low Contrast / High Clutter",
-            speckle_reduction_pct=telemetry_data["speckle_reduction_pct"],
-            enl_filtered=telemetry_data["enl_filtered"],
-            cross_pol_delta_db=telemetry_data["cross_pol_delta_db"],
-            dynamic_range_db=telemetry_data["dynamic_range_db"],
-        )
-    except Exception:
-        telemetry_obj = None
+    telemetry_obj = _extract_telemetry_obj(chip.band_1, chip.band_2)
 
     logger.info(
         "Model comparison completed: resnet=%s (prob=%.4f), xgboost=%s (prob=%.4f), agreement=%s",
