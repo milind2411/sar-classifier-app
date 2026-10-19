@@ -31,3 +31,12 @@ backend/data/*.db-journal
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Local-only model checkpoints & working files
+*.keras
+.continue-here.md
+.agents/
+.planning/
+/*.png
+*.bak
+*BACKUP*

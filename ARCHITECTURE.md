@@ -15,15 +15,15 @@ training stage** that lives entirely outside the running application.
 ```
 Kaggle (offline, external)  →  Model Artifacts       →  Backend Services  →  API      →  Frontend (React SPA)
    training notebook            sar_classifier.onnx     inference.py       FastAPI    ├── / (Landing Page)
-   (not part of runtime)        .keras (gradcam)        gradcam.py         routers/   ├── /app (Analysis Workspace)
-                                .json (xgboost)         xgboost_service.py              │   ├── ?tab=target
-                                                        radar_telemetry.py              │   ├── ?tab=compare
-                                                        history.py (→ SQLite)           │   ├── ?tab=sweep
-                                                                                        │   ├── ?tab=map
-                                                                                        │   ├── ?tab=batch
-                                                                                        │   └── ?tab=analytics
-                                                                                      ├── /about (Technical Specs)
-                                                                                      └── (Legacy redirects: /map etc.)
+   (not part of runtime)        .keras (gradcam)        gradcam.py         routers/   ├── /app (Analysis Workspace — Continuous Flow)
+                                .json (xgboost)         xgboost_service.py              ├── Section 1: Canvas & Classification Result
+                                                        radar_telemetry.py              ├── Section 2: Model Comparison (Inline)
+                                                        history.py (→ SQLite)           ├── Section 3: Angle Sensitivity Sweep (Inline)
+                                                                                        └── Section 4: Grad-CAM Explainability (Inline)
+                                                                                      ├── /batch (Batch Processing Workstation)
+                                                                                      ├── /analytics (Audit KPIs & Telemetry Analytics)
+                                                                                      ├── /about (Technical Specifications & Provenance)
+                                                                                      └── (Legacy redirects: /compare, /angle → /app)
 ```
 
 **Kaggle is not a live pipeline.** There is no automated retraining, no
@@ -34,10 +34,15 @@ system works — flag it rather than build toward it silently.
 
 The frontend never talks to a database or a model file directly. Everything
 goes: **Client → API (routers/predict.py) → Services → Model artifacts or SQLite.**
-The operational frontend consolidates all interactive tooling into `/app`
-as tabbed modules (`?tab=...`), preserving a clean top-level information architecture
-(`/`, `/app`, `/about`) without fragmented routing. Legacy routes (`/compare`,
-`/angle`, `/map`, `/batch`, `/analytics`) redirect to their corresponding `/app?tab=...` views.
+The single-chip Analysis Workspace (`/app`) operates as a single continuous
+flow without tab switching: the compact chip input row leads directly to the
+two-column radar canvas and results panel, followed inline by model comparison,
+orbital angle sensitivity sweep, and Grad-CAM explainability. High-throughput
+batch processing (`/batch`) and historical analytics (`/analytics`) are elevated
+to top-level navigation alongside `/` and `/about`. The Coverage Map feature (`/map`)
+was permanently removed as it relied on fabricated coordinates and orbital tracks
+not present in the Sentinel-1 dataset. Legacy single-chip routes (`/compare`, `/angle`)
+redirect smoothly to `/app`.
 
 ---
 
