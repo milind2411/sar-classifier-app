@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 export default function AboutPage() {
+  useDocumentTitle('About | SAR Classifier');
   const jumpLinks = [
     { href: '#challenge', label: '01 · Physical Challenge' },
     { href: '#pipeline', label: '02 · Radar Pipeline' },
@@ -322,22 +324,13 @@ export default function AboutPage() {
               1. Incidence Angle Sweep is a Model Sensitivity Probe
             </strong>
             <p>
-              The angle sweep simulator on <code className="text-cyan-300 font-mono">/angle</code> tests the neural network’s mathematical response by varying the scalar incidence angle input <code className="text-cyan-300 font-mono">θ</code> across 30° to 46° for a static image tensor. It is a counterfactual model diagnostic, not a physical electromagnetic re-simulation of radar wave scattering under differing satellite look geometries.
+              The angle sweep simulator on the Analysis Workspace (<code className="text-cyan-300 font-mono">/app</code>) tests the neural network’s mathematical response by varying the scalar incidence angle input <code className="text-cyan-300 font-mono">θ</code> across 30° to 46° for a static image tensor. It is a counterfactual model diagnostic, not a physical electromagnetic re-simulation of radar wave scattering under differing satellite look geometries.
             </p>
           </div>
 
           <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 space-y-1">
             <strong className="text-amber-300 font-mono text-xs uppercase block">
-              2. Geospatial Overview Map Uses Simulated Positions
-            </strong>
-            <p>
-              The maritime map on <code className="text-cyan-300 font-mono">/map</code> renders illustrative sample targets, idealized orbital ground-track swaths, and marginal ice zones for interactive demonstration. Target coordinates and boundaries are illustrative and not derived from real-time live satellite telemetry feeds.
-            </p>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 space-y-1">
-            <strong className="text-amber-300 font-mono text-xs uppercase block">
-              3. ResNet50 Multi-Fold Benchmarks Pending Fresh Benchmark
+              2. ResNet50 Multi-Fold Benchmarks Pending Fresh Benchmark
             </strong>
             <p>
               While the classical baseline holds verified 5-fold cross-validation metrics (89.97% accuracy, 0.964 AUC), the original cross-validation metrics for the ResNet50 fold checkpoint were lost during an earlier kernel restart. While side-by-side evaluation confirms solid agreement on sample chips, formal multi-fold numerical benchmarks for the deep learning checkpoint are pending fresh re-computation.

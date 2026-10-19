@@ -44,11 +44,22 @@ export default function ResultsPanel({
 
   if (!result && !loading) {
     return (
-      <div className="glass-panel p-6 animate-fade-in">
-        <h2 className="text-lg font-semibold text-white/60 mb-2">Classification Result</h2>
-        <p className="text-muted text-sm">
-          Load a chip and click <span className="text-accent font-medium">Classify</span> to see results.
+      <div className="glass-panel p-6 animate-fade-in space-y-3 border-l-2 border-l-accent/60">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-bold text-white tracking-tight">Classification Standby</h2>
+          {chipName && (
+            <span className="text-xs font-mono text-accent bg-accent/10 border border-accent/25 px-2 py-0.5 rounded">
+              {chipName}
+            </span>
+          )}
+        </div>
+        <p className="text-slate-300 text-xs leading-relaxed font-sans">
+          Target loaded into workspace. Select your preferred classifier engine (ResNet50, XGBoost, or Compare Both) on the left and click <span className="text-accent font-medium font-mono">Classify</span> to generate model probabilities, SNR telemetry, and Grad-CAM attention maps.
         </p>
+        <div className="pt-2 border-t border-white/5 flex items-center gap-2 text-[11px] font-mono text-white/40">
+          <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+          <span>Ready for evaluation</span>
+        </div>
       </div>
     );
   }

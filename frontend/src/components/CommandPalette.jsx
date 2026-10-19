@@ -48,14 +48,14 @@ export default function CommandPalette({ isOpen, onClose, onOpenHistory }) {
         },
       },
       {
-        id: 'nav-map',
+        id: 'nav-batch',
         category: 'NAVIGATION',
-        title: 'Geospatial Acquisition Map',
-        description: 'Arctic / North Atlantic AOI with Sentinel-1 orbital swaths and radar contacts',
-        shortcut: 'G M',
-        keywords: 'map coverage geospatial acquisition arctic ocean sentinel orbit track swath contacts coordinates',
+        title: 'Batch Processing Workstation',
+        description: 'High-throughput multi-target ATR analysis (up to 50 chips)',
+        shortcut: 'G B',
+        keywords: 'batch upload multi chips high throughput bulk',
         action: () => {
-          navigate('/app?tab=map');
+          navigate('/batch');
           onClose();
         },
       },
@@ -67,7 +67,7 @@ export default function CommandPalette({ isOpen, onClose, onOpenHistory }) {
         shortcut: 'G Y',
         keywords: 'analytics charts stats pie bar telemetry snr kpi trends audit distribution',
         action: () => {
-          navigate('/app?tab=analytics');
+          navigate('/analytics');
           onClose();
         },
       },
@@ -79,7 +79,7 @@ export default function CommandPalette({ isOpen, onClose, onOpenHistory }) {
         shortcut: 'G C',
         keywords: 'compare model xgboost benchmark glcm texture',
         action: () => {
-          navigate('/app?tab=compare');
+          navigate('/app');
           onClose();
         },
       },
@@ -91,19 +91,7 @@ export default function CommandPalette({ isOpen, onClose, onOpenHistory }) {
         shortcut: 'G S',
         keywords: 'angle sweep sensitivity orbital curve geometry',
         action: () => {
-          navigate('/app?tab=sweep');
-          onClose();
-        },
-      },
-      {
-        id: 'nav-batch',
-        category: 'NAVIGATION',
-        title: 'Batch Processing Workstation',
-        description: 'High-throughput multi-target ATR analysis (up to 50 chips)',
-        shortcut: 'G B',
-        keywords: 'batch upload multi chips high throughput bulk',
-        action: () => {
-          navigate('/app?tab=batch');
+          navigate('/app');
           onClose();
         },
       },
@@ -198,7 +186,7 @@ export default function CommandPalette({ isOpen, onClose, onOpenHistory }) {
         action: () => {
           if (chip) {
             handleRunComparison();
-            if (location.pathname !== '/compare') navigate('/compare');
+            if (location.pathname !== '/app') navigate('/app');
             onClose();
           }
         },
@@ -234,7 +222,7 @@ export default function CommandPalette({ isOpen, onClose, onOpenHistory }) {
         action: () => {
           if (chip) {
             handleAngleSweep();
-            if (location.pathname !== '/angle') navigate('/angle');
+            if (location.pathname !== '/app') navigate('/app');
             onClose();
           }
         },
@@ -338,6 +326,9 @@ export default function CommandPalette({ isOpen, onClose, onOpenHistory }) {
 
           {/* Modal Panel */}
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Command palette"
             initial={{ opacity: 0, scale: 0.96, y: -8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: -8 }}
@@ -354,6 +345,7 @@ export default function CommandPalette({ isOpen, onClose, onOpenHistory }) {
                 viewBox="0 0 24 24"
                 stroke="currentColor"
                 strokeWidth={2}
+                aria-hidden="true"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
               </svg>
@@ -363,9 +355,11 @@ export default function CommandPalette({ isOpen, onClose, onOpenHistory }) {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                aria-label="Command palette search input"
                 placeholder="Type a command, route, or target name..."
                 className="w-full bg-transparent text-sm text-white placeholder:text-white/40 focus:outline-none font-mono"
               />
+
 
               {chip && (
                 <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-accent/10 border border-accent/20 text-[10px] font-mono text-accent shrink-0">

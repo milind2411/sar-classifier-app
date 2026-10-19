@@ -211,12 +211,15 @@ export default function GradCamPanel({
             <div className="chip-canvas-container shadow-glow relative group">
               <canvas
                 ref={canvasRef}
+                role="img"
+                aria-label={`Grad-CAM spatial attention heatmap for predicted ${predictedClass}, using ${colormap} colormap`}
                 width={300}
                 height={300}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
                 className="w-full h-full cursor-crosshair"
               />
+
               <div className="absolute top-2 right-2 badge bg-black/80 text-white/80 text-[10px] border border-white/10 backdrop-blur-sm">
                 Standalone CAM
               </div>

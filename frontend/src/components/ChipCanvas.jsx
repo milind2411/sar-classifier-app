@@ -326,6 +326,8 @@ export default function ChipCanvas({ band1, band2 }) {
       >
         <canvas
           ref={canvasRef}
+          role="img"
+          aria-label={`SAR radar chip display, ${viewMode} visualization, 75x75 pixels at nominal 10m per pixel resolution`}
           width={300}
           height={300}
           onMouseDown={handleMouseDown}
@@ -337,6 +339,7 @@ export default function ChipCanvas({ band1, band2 }) {
           }}
           className={`w-full h-full ${rulerActive ? 'cursor-crosshair' : zoom > 1 ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-crosshair'}`}
         />
+
 
         {/* Viewport Controls Overlay */}
         <div className="absolute top-2 right-2 flex items-center gap-1 bg-slate-950/80 backdrop-blur-md border border-white/15 rounded-lg p-0.5 text-xs font-mono">

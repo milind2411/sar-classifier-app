@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useReducedMotion } from 'framer-motion';
-import { predict, angleSweep, gradcam, compare } from '../api';
+import { predict, angleSweep, gradcam, compare, checkHealth, loadSampleChip } from '../api';
 
 // ── Built-in sample chips (ground-truth Kaggle samples) ──
 export const SAMPLES = [
@@ -60,13 +60,9 @@ export function ChipProvider({ children }) {
   // ── Health check on mount ──
   useEffect(() => {
     let isMounted = true;
-    fetch('/health')
-      .then((res) => {
-        if (res.ok) {
-          if (isMounted) setBackendOnline(true);
-        } else {
-          if (isMounted) setBackendOnline(false);
-        }
+    checkHealth()
+      .then((data) => {
+        if (isMounted) setBackendOnline(data.status === 'ok');
       })
       .catch(() => {
         if (isMounted) setBackendOnline(false);
@@ -90,9 +86,7 @@ export function ChipProvider({ children }) {
   const loadSample = useCallback(
     async (sampleId) => {
       try {
-        const res = await fetch(`/sample_chips/${sampleId}.json`);
-        if (!res.ok) throw new Error(`Sample ${sampleId}.json not found in public/sample_chips/`);
-        const data = await res.json();
+        const data = await loadSampleChip(sampleId);
         loadChip({ ...data, name: `${sampleId}.json` });
       } catch (err) {
         setError(`Failed to load sample: ${err.message}. Run the export tool first.`);

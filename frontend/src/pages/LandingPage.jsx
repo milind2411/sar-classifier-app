@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useInView } from 'framer-motion';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 /**
  * RevealSection helper for scroll-triggered entry animations
@@ -24,7 +25,10 @@ function RevealSection({ children, className = '', delay = 0, id }) {
 }
 
 export default function LandingPage() {
+  useDocumentTitle('SAR Classifier — Ship vs Iceberg');
+
   return (
+
     <div className="space-y-16 py-4 md:py-10 max-w-6xl mx-auto px-2 sm:px-4">
       {/* ──────────────── 1. HERO SECTION (UNTOUCHED) ──────────────── */}
       <RevealSection className="flex flex-col md:flex-row items-center justify-between gap-10 md:gap-14 pt-4 pb-6">
@@ -165,10 +169,10 @@ export default function LandingPage() {
           </div>
 
           {/* Block 3 */}
-          <div className="glass-panel p-5 space-y-3 border-t-2 border-t-emerald-500/70 hover:border-white/20 transition-all flex flex-col justify-between">
+          <div className="glass-panel p-5 space-y-3 border-t-2 border-t-cyan-500/70 hover:border-white/20 transition-all flex flex-col justify-between">
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs font-mono">
-                <span className="text-emerald-400 font-bold">03 · DUAL INFERENCE</span>
+                <span className="text-cyan-400 font-bold">03 · DUAL INFERENCE</span>
                 <span className="text-white/40">Hybrid</span>
               </div>
               <h4 className="text-base font-bold text-white tracking-tight">
@@ -178,16 +182,16 @@ export default function LandingPage() {
                 Dual-branch ResNet50 fusion deep learning network evaluated alongside a calibrated 49-feature GLCM Haralick physical texture and clutter baseline.
               </p>
             </div>
-            <div className="text-[11px] font-mono text-emerald-400/80 pt-2 border-t border-white/5">
+            <div className="text-[11px] font-mono text-cyan-400/80 pt-2 border-t border-white/5">
               &lt; 50ms execution latency
             </div>
           </div>
 
           {/* Block 4 */}
-          <div className="glass-panel p-5 space-y-3 border-t-2 border-t-amber-500/70 hover:border-white/20 transition-all flex flex-col justify-between">
+          <div className="glass-panel p-5 space-y-3 border-t-2 border-t-cyan-500/70 hover:border-white/20 transition-all flex flex-col justify-between">
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs font-mono">
-                <span className="text-amber-400 font-bold">04 · EXPLAINABILITY</span>
+                <span className="text-cyan-400 font-bold">04 · EXPLAINABILITY</span>
                 <span className="text-white/40">Diagnostics</span>
               </div>
               <h4 className="text-base font-bold text-white tracking-tight">
@@ -197,7 +201,7 @@ export default function LandingPage() {
                 10×10 localized gradient attention maps, real-time Target-to-Clutter Ratio (dB) telemetry, and incidence angle counterfactual sensitivity diagnostics.
               </p>
             </div>
-            <div className="text-[11px] font-mono text-amber-400/80 pt-2 border-t border-white/5">
+            <div className="text-[11px] font-mono text-cyan-400/80 pt-2 border-t border-white/5">
               Explainable AI & Telemetry
             </div>
           </div>

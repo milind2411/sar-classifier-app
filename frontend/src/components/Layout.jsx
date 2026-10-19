@@ -5,7 +5,7 @@ import HistoryDrawer from './HistoryDrawer';
 import CommandPalette from './CommandPalette';
 
 export default function Layout() {
-  const { backendOnline, error } = useChip();
+  const { error } = useChip();
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(() => {
     return new URLSearchParams(window.location.search).get('history') === '1';
@@ -26,6 +26,8 @@ export default function Layout() {
   const navLinks = [
     { to: '/', label: 'Overview' },
     { to: '/app', label: 'Analysis Workspace' },
+    { to: '/batch', label: 'Batch ATR' },
+    { to: '/analytics', label: 'Analytics' },
     { to: '/about', label: 'About' },
   ];
 
@@ -110,24 +112,6 @@ export default function Layout() {
               </svg>
               <span className="text-[11px] text-white/50 group-hover:text-white/80 hidden sm:inline">History</span>
             </button>
-
-            {backendOnline !== null && (
-              <div
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border ${
-                  backendOnline
-                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                    : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
-                }`}
-                title={backendOnline ? 'Inference engine connected' : 'Inference service offline'}
-              >
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    backendOnline ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'
-                  }`}
-                />
-                <span className="font-mono">{backendOnline ? 'System Online' : 'System Offline'}</span>
-              </div>
-            )}
           </div>
         </div>
       </header>
@@ -152,6 +136,13 @@ export default function Layout() {
 
           {/* Section 3: GitHub repo link & credit line */}
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted">
+            <Link
+              to="/privacy"
+              className="text-white/60 hover:text-accent transition-colors font-mono text-[11px]"
+            >
+              Privacy Policy
+            </Link>
+            <span className="text-white/20">·</span>
             {/* PLACEHOLDER: Replace YOUR_USERNAME with actual GitHub repository owner/organization */}
             <a
               href="https://github.com/YOUR_USERNAME/sar-classifier-app"

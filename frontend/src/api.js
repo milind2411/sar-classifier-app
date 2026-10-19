@@ -5,7 +5,24 @@
  * The frontend sends raw bands + angle exactly as stored in the .npy files.
  */
 
-const BASE = '/api';
+const RAW_BASE = (import.meta.env.VITE_API_BASE_URL || '/api').trim();
+const BASE = RAW_BASE.replace(/\/+$/, '');
+
+/**
+ * Derive health endpoint URL from base URL.
+ * In dev: returns '/health' (proxied by Vite to http://127.0.0.1:8000).
+ * With absolute VITE_API_BASE_URL: extracts origin and points to `${origin}/health`.
+ */
+function getHealthUrl() {
+  if (BASE.startsWith('http://') || BASE.startsWith('https://')) {
+    try {
+      return `${new URL(BASE).origin}/health`;
+    } catch {
+      return '/health';
+    }
+  }
+  return '/health';
+}
 
 async function request(endpoint, body) {
   const res = await fetch(`${BASE}${endpoint}`, {
@@ -86,8 +103,11 @@ export async function getHistory(limit = 50) {
   const res = await fetch(`${BASE}/history?limit=${capped}`);
   if (!res.ok) {
     const detail = await res.json().catch(() => ({}));
-    throw new Error(detail.detail || `API error ${res.status}`);
+    const err = new Error(detail.detail || `API error ${res.status}`);
+    err.status = res.status;
+    throw err;
   }
+
   return res.json();
 }
 
@@ -101,12 +121,31 @@ export function predictBatch(chips) {
 }
 
 /**
- * Health check.
- * @returns {{ status: string }}
+ * Health check querying the backend root /health endpoint.
+ * Works both via local Vite proxy ('/health') and against absolute VITE_API_BASE_URL.
+ * @returns {Promise<{ status: string }>}
  */
-export async function healthCheck() {
-  const res = await fetch('/health');
-  if (!res.ok) throw new Error('Backend unreachable');
+export async function checkHealth() {
+  const healthUrl = getHealthUrl();
+  const res = await fetch(healthUrl);
+  if (!res.ok) throw new Error(`Backend unreachable (status ${res.status})`);
+  return res.json();
+}
+
+// Backward-compatible alias
+export const healthCheck = checkHealth;
+
+/**
+ * Load a verified Kaggle ground-truth sample chip by id (e.g. 'ship_1', 'iceberg_2').
+ * @param {string} id  Sample chip identifier
+ * @returns {Promise<{ band_1: number[], band_2: number[], inc_angle: number, name?: string, id?: string }>}
+ */
+export async function loadSampleChip(id) {
+  const cleanId = String(id).replace(/\.json$/, '');
+  const res = await fetch(`/sample_chips/${cleanId}.json`);
+  if (!res.ok) {
+    throw new Error(`Failed to load sample chip '${cleanId}': ${res.status}`);
+  }
   return res.json();
 }
 

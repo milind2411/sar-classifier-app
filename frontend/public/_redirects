@@ -1,0 +1,2 @@
+/sample_chips/*  /sample_chips/:splat  200
+/*               /index.html           200

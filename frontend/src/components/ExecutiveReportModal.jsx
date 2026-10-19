@@ -207,6 +207,8 @@ export default function ExecutiveReportModal({
               <div className="w-[180px] h-[180px] border border-white/20 rounded-lg overflow-hidden relative shadow-inner print:border-black">
                 <canvas
                   ref={canvasRef}
+                  role="img"
+                  aria-label={`Target SAR false-color composite image, predicted ${result?.predicted_class || 'target'}`}
                   className="w-full h-full"
                   style={{ imageRendering: 'pixelated' }}
                 />
@@ -228,10 +230,13 @@ export default function ExecutiveReportModal({
                 {gradcamData?.heatmap ? (
                   <canvas
                     ref={camCanvasRef}
+                    role="img"
+                    aria-label={`Grad-CAM spatial attention activation map, layer ${gradcamData?.layer_used || 'conv'}, predicted ${result?.predicted_class || 'target'}`}
                     className="w-full h-full"
                     style={{ imageRendering: 'pixelated' }}
                   />
                 ) : (
+
                   <div className="p-3 text-center text-xs text-slate-500 font-mono print:text-slate-700">
                     Grad-CAM activation not generated for this session
                   </div>

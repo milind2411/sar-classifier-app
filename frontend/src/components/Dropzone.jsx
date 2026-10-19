@@ -9,7 +9,7 @@ import { useDropzone } from 'react-dropzone';
  *  - .npy files (binary numpy format from backend/data/sample_chips/)
  *  - .json files with { band_1, band_2, inc_angle } structure
  */
-export default function Dropzone({ onChipLoaded, disabled }) {
+export default function Dropzone({ onChipLoaded, disabled, compact = false }) {
   const onDrop = useCallback(
     async (acceptedFiles) => {
       if (acceptedFiles.length === 0) return;
@@ -44,6 +44,27 @@ export default function Dropzone({ onChipLoaded, disabled }) {
     accept: { 'application/octet-stream': ['.npy'], 'application/json': ['.json'] },
     maxFiles: 1,
   });
+
+  if (compact) {
+    return (
+      <div
+        {...getRootProps()}
+        className={`
+          px-4 py-2 rounded-xl border border-dashed text-center cursor-pointer transition-all duration-200 flex items-center justify-center gap-2.5
+          ${isDragActive ? 'border-accent bg-accent/10 shadow-glow-sm' : 'border-white/15 bg-white/[0.02] hover:border-white/30 hover:bg-white/[0.05]'}
+          ${disabled ? 'opacity-40 cursor-not-allowed' : ''}
+        `}
+      >
+        <input {...getInputProps()} />
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+        </svg>
+        <span className="text-xs text-white/70 font-mono">
+          {isDragActive ? 'Drop SAR chip here…' : 'Upload custom .json / .npy'}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div

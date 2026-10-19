@@ -228,7 +228,7 @@ export default function AngleSensitivityChart({ data, currentAngle }) {
       <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 text-xs text-white/70 leading-relaxed">
         {analysis?.isCrossing ? (
           <span className="flex items-start gap-2 text-amber-light">
-            <svg className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
               <line x1="12" y1="9" x2="12" y2="13" />
               <line x1="12" y1="17" x2="12.01" y2="17" />
@@ -239,7 +239,7 @@ export default function AngleSensitivityChart({ data, currentAngle }) {
           </span>
         ) : analysis?.allShip ? (
           <span className="flex items-start gap-2 text-emerald-300/90">
-            <svg className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <polyline points="20 6 9 17 4 12" />
             </svg>
             <span>
@@ -248,7 +248,7 @@ export default function AngleSensitivityChart({ data, currentAngle }) {
           </span>
         ) : (
           <span className="flex items-start gap-2 text-rose-300/90">
-            <svg className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <polyline points="20 6 9 17 4 12" />
             </svg>
             <span>

@@ -13,6 +13,7 @@ import {
 } from 'recharts';
 import { getHistory } from '../api';
 import { useChip } from '../context/ChipContext';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 const PIE_COLORS = {
   ship: '#38bdf8', // cyan
@@ -20,10 +21,12 @@ const PIE_COLORS = {
 };
 
 export default function AnalyticsPage() {
+  useDocumentTitle('Analytics | SAR Classifier');
   const { containerVariants, itemVariants } = useChip();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isDisabled, setIsDisabled] = useState(false);
   const [filterClass, setFilterClass] = useState('all');
 
   useEffect(() => {
@@ -31,13 +34,17 @@ export default function AnalyticsPage() {
     getHistory(200)
       .then((data) => {
         if (mounted) {
-          setHistory(data);
+          setHistory(Array.isArray(data) ? data : []);
           setLoading(false);
         }
       })
       .catch((err) => {
         if (mounted) {
-          setError(err.message);
+          if (err.status === 404 || (err.message && err.message.toLowerCase().includes('disabled'))) {
+            setIsDisabled(true);
+          } else {
+            setError(err.message || 'Failed to load telemetry history');
+          }
           setLoading(false);
         }
       });
@@ -138,6 +145,44 @@ export default function AnalyticsPage() {
     if (filterClass === 'all') return history;
     return history.filter((h) => h.predicted_class === filterClass);
   }, [history, filterClass]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center space-y-3">
+        <div className="w-8 h-8 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+        <span className="text-xs text-muted font-mono">Loading telemetry audit data…</span>
+      </div>
+    );
+  }
+
+  if (isDisabled) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6">
+        <div className="glass-panel p-8 max-w-md w-full border border-white/10 space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-center mx-auto text-muted">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-white">Prediction History</h2>
+            <p className="text-sm text-muted mt-1">History is disabled on this deployment.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6">
+        <div className="p-4 rounded-xl bg-danger/10 border border-danger/20 text-danger text-sm max-w-md w-full space-y-2">
+          <p className="font-semibold">Failed to load analytics</p>
+          <p className="text-xs">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div

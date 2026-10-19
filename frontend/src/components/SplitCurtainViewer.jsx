@@ -104,6 +104,8 @@ export default function SplitCurtainViewer({ band1, band2, gradcamHeatmap, color
         {/* Underlayer (Right side: Grad-CAM Heatmap) */}
         <canvas
           ref={rightCanvasRef}
+          role="img"
+          aria-label="Split-curtain underlayer: Grad-CAM spatial attention activation map"
           width={300}
           height={300}
           className="absolute inset-0 w-full h-full"
@@ -116,11 +118,14 @@ export default function SplitCurtainViewer({ band1, band2, gradcamHeatmap, color
         >
           <canvas
             ref={leftCanvasRef}
+            role="img"
+            aria-label="Split-curtain overlayer: SAR radar false-color composite image"
             width={300}
             height={300}
             className="w-full h-full"
           />
         </div>
+
 
         {/* Vertical Divider Line with handle */}
         <div

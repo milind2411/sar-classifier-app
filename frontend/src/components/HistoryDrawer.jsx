@@ -26,20 +26,27 @@ export default function HistoryDrawer({ isOpen, onClose }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isDisabled, setIsDisabled] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
 
   const fetchHistory = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setIsDisabled(false);
     try {
       const data = await getHistory(50);
       setHistory(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err.message || 'Failed to fetch history');
+      if (err.status === 404 || (err.message && err.message.toLowerCase().includes('disabled'))) {
+        setIsDisabled(true);
+      } else {
+        setError(err.message || 'Failed to fetch history');
+      }
     } finally {
       setLoading(false);
     }
   }, []);
+
 
   // Fetch whenever the drawer is opened
   useEffect(() => {
@@ -151,7 +158,7 @@ export default function HistoryDrawer({ isOpen, onClose }) {
                   </div>
                 )}
 
-                {error && (
+                {error && !isDisabled && (
                   <div className="p-4 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs space-y-2">
                     <p className="font-semibold">Failed to load history</p>
                     <p>{error}</p>
@@ -164,7 +171,23 @@ export default function HistoryDrawer({ isOpen, onClose }) {
                   </div>
                 )}
 
-                {!loading && !error && history.length === 0 && (
+                {isDisabled && (
+                  <div className="flex flex-col items-center justify-center py-20 text-center px-6 space-y-4">
+                    <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-center text-muted">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-white">Prediction History</h3>
+                      <p className="text-xs text-muted mt-1 max-w-xs leading-relaxed">
+                        History is disabled on this deployment.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {!loading && !error && !isDisabled && history.length === 0 && (
                   <div className="flex flex-col items-center justify-center py-20 text-center px-6 space-y-4">
                     <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-center text-muted">
                       <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -190,7 +213,7 @@ export default function HistoryDrawer({ isOpen, onClose }) {
                   </div>
                 )}
 
-                {!error && history.length > 0 && (
+                {!error && !isDisabled && history.length > 0 && (
                   <div className="space-y-2.5">
                     {history.map((item) => {
                       const isIceberg = item.predicted_class === 'iceberg';

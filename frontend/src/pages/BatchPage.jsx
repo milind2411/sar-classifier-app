@@ -2,10 +2,11 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useChip, SAMPLES } from '../context/ChipContext';
-import { predictBatch } from '../api';
+import { predictBatch, loadSampleChip } from '../api';
 import { bandsToFalseColor } from '../colormap';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
-function ChipThumbnail({ band1, band2 }) {
+function ChipThumbnail({ band1, band2, targetName = 'Target', predictedClass }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -30,18 +31,26 @@ function ChipThumbnail({ band1, band2 }) {
     }
   }, [band1, band2]);
 
+  const label = predictedClass
+    ? `SAR chip thumbnail for ${targetName}, predicted ${predictedClass}`
+    : `SAR chip thumbnail preview for ${targetName}`;
+
   return (
     <canvas
       ref={canvasRef}
       width={40}
       height={40}
+      role="img"
+      aria-label={label}
       className="w-10 h-10 rounded border border-white/15 bg-black shrink-0"
-      title="Radar false-color composite preview"
+      title={label}
     />
   );
 }
 
+
 export default function BatchPage({ onInspectChip }) {
+  useDocumentTitle('Batch ATR | SAR Classifier');
   const navigate = useNavigate();
   const { loadChip, containerVariants, itemVariants } = useChip();
 
@@ -58,9 +67,7 @@ export default function BatchPage({ onInspectChip }) {
     try {
       const loadedChips = [];
       for (const s of SAMPLES) {
-        const res = await fetch(`/sample_chips/${s.id}.json`);
-        if (!res.ok) throw new Error(`Could not fetch /sample_chips/${s.id}.json`);
-        const data = await res.json();
+        const data = await loadSampleChip(s.id);
         loadedChips.push({
           ...data,
           name: `${s.id}.json`,
@@ -414,7 +421,10 @@ export default function BatchPage({ onInspectChip }) {
                         <ChipThumbnail
                           band1={chipData.band_1}
                           band2={chipData.band_2}
+                          targetName={chipData.name || `Target #${idx + 1}`}
+                          predictedClass={res.predicted_class}
                         />
+
                       </td>
 
                       {/* Target Name */}

@@ -3,14 +3,37 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#070c18" />
     <meta name="description" content="SAR Vessel/Iceberg Classifier — Deep learning classification of Sentinel-1 SAR chips as ship or iceberg using a dual-branch ResNet50 fusion model." />
     <title>SAR Classifier — Ship vs Iceberg</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Favicon & Touch Icon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- Open Graph & Twitter Meta Tags (Canonical image/url deferred to deployment) -->
+    <meta property="og:title" content="SAR Classifier — Ship vs Iceberg" />
+    <meta property="og:description" content="Deep learning classification of Sentinel-1 SAR chips as ship or iceberg using a dual-branch ResNet50 fusion model." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="SAR Classifier — Ship vs Iceberg" />
+    <meta name="twitter:description" content="Deep learning classification of Sentinel-1 SAR chips as ship or iceberg using a dual-branch ResNet50 fusion model." />
   </head>
   <body class="bg-midnight text-white font-sans antialiased">
-    <div id="root"></div>
+    <div id="root">
+      <div id="initial-loader" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background-color:#070c18;color:#f8fafc;font-family:system-ui,-apple-system,sans-serif;">
+        <div style="position:relative;width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;">
+          <div style="position:absolute;inset:0;border-radius:50%;border:2px dashed rgba(56,189,248,0.5);animation:sar-spin 3s linear infinite;"></div>
+          <div style="width:10px;height:10px;border-radius:50%;background:#38bdf8;box-shadow:0 0 10px #38bdf8;"></div>
+        </div>
+        <div style="font-size:13px;font-weight:600;letter-spacing:0.06em;color:#e2e8f0;">SAR-VISION</div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:4px;letter-spacing:0.04em;">Initializing workstation…</div>
+      </div>
+      <style>
+        @keyframes sar-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      </style>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
+
